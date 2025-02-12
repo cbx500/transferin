@@ -1,0 +1,13 @@
+name: DBS_calculator
+title:
+username: q1qo2v-carlos0m0-bernadell
+account: q1qo2v-carlos0m0-bernadell
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 13710614
+bundleId: 9723585
+url: https://q1qo2v-carlos0m0-bernadell.shinyapps.io/DBS_calculator/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: reportnotnew.html|reportnotnew.Rmd

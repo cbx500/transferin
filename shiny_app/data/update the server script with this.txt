@@ -1,0 +1,110 @@
+update the server script with this solution, it works and calcuilates the credit transfer in # Load necessary packages
+library(openxlsx)
+library(dplyr)
+
+# ---------------------------
+# Set Up File Paths (adjust as needed)
+# ---------------------------
+root_path <- "C:/transferin/shiny_app"  # Your app root
+data_dir <- "data"
+output_dir <- "output"
+
+static_data_path <- file.path(root_path, data_dir, "Static_Data.xlsx")
+extracted_params_path <- file.path(root_path, output_dir, "Extracted_Parameters.xlsx")
+monthly_validation_path <- file.path(root_path, output_dir, "MonthlyEquivalentAnnuityAndPCFCalculation_Validation.xlsx")
+step1_data_path <- file.path(root_path, output_dir, "Step1_Loaded_Data.xlsx")
+pension_report_path <- file.path(root_path, output_dir, "Pension_Report.xlsx")
+
+# ---------------------------
+# Extract Parameters from Extracted_Parameters.xlsx
+# ---------------------------
+cat("=== Extracted Parameters ===\n")
+if (!file.exists(extracted_params_path)) stop("Extracted_Parameters.xlsx not found at ", extracted_params_path)
+params <- read.xlsx(extracted_params_path, sheet = 1)
+# Extract NBY from parameter "Discount_Rate_NBY"
+nby_extracted <- as.numeric(params$Value[params$Parameter == "Discount_Rate_NBY"])
+cat("Extracted NBY (Discount_Rate_NBY):", nby_extracted, "\n")
+
+# ---------------------------
+# Extract Pre-Retirement Discount Rate from Static_Data.xlsx
+# ---------------------------
+cat("\n=== Static Data Parameters ===\n")
+if (!file.exists(static_data_path)) stop("Static_Data.xlsx not found at ", static_data_path)
+stat_df <- read.xlsx(static_data_path, sheet = "StaticData")
+preret_rate <- as.numeric(stat_df$Value[stat_df$Parameter == "preretirement_discountrate"])
+cat("Extracted Pre-Retirement Discount Rate:", preret_rate, "\n")
+
+# ---------------------------
+# Extract PCF Values from MonthlyEquivalentAnnuityAndPCFCalculation_Validation.xlsx
+# ---------------------------
+cat("\n=== PCF Values ===\n")
+if (!file.exists(monthly_validation_path)) stop("MonthlyEquivalentAnnuityAndPCFCalculation_Validation.xlsx not found at ", monthly_validation_path)
+pcf_df <- read.xlsx(monthly_validation_path, sheet = "Validation_Results")
+pcf_staff <- as.numeric(pcf_df$Value[pcf_df$Parameter == "PCF_weighted_staff"])
+pcf_spouse <- as.numeric(pcf_df$Value[pcf_df$Parameter == "PCF_weighted_spouse"])
+total_pcf <- as.numeric(pcf_df$Value[pcf_df$Parameter == "Total_Pension_Conversion_Factor (PCF)"])
+cat("Staff PCF:", pcf_staff, "\nSpouse PCF:", pcf_spouse, "\nTotal PCF:", total_pcf, "\n")
+
+# ---------------------------
+# Extract Transfer Value and Dates from Step1_Loaded_Data.xlsx
+# ---------------------------
+cat("\n=== Transfer Value and Dates ===\n")
+if (!file.exists(step1_data_path)) stop("Step1_Loaded_Data.xlsx not found at ", step1_data_path)
+step1_df <- read.xlsx(step1_data_path, sheet = "Personal Data")
+
+# Print the data to see the column names and values
+cat("Data from Step1_Loaded_Data.xlsx:\n")
+print(step1_df)
+
+# Use the correct column "Field" (not "Parameter") to extract values
+transfer_value <- as.numeric(step1_df$Value[step1_df$Field == "transfer_value"])
+report_date_str <- step1_df$Value[step1_df$Field == "report_date"]
+retirement_date_str <- step1_df$Value[step1_df$Field == "retirement_date"]
+
+cat("Transfer Value:", transfer_value, "\n")
+cat("Report Date (string):", report_date_str, "\n")
+cat("Retirement Date (string):", retirement_date_str, "\n")
+
+# Convert dates
+report_date <- as.Date(report_date_str)
+retirement_date <- as.Date(retirement_date_str)
+cat("Report Date:", report_date, "\n")
+cat("Retirement Date:", retirement_date, "\n")
+
+# ---------------------------
+# Calculate Time to Retirement
+# ---------------------------
+ttr <- as.numeric(difftime(retirement_date, report_date, units = "days")) / 365.25
+cat("Time to Retirement (years):", ttr, "\n")
+
+# ---------------------------
+# Extract Revalued Earnings from Pension_Report.xlsx
+# ---------------------------
+cat("\n=== Revalued Earnings ===\n")
+if (!file.exists(pension_report_path)) stop("Pension_Report.xlsx not found at ", pension_report_path)
+pr_df <- read.xlsx(pension_report_path, sheet = "Pension Report")
+row65 <- pr_df[pr_df$retirement_age == 65, ]
+if(nrow(row65) == 0) stop("No row with retirement_age == 65 found in Pension_Report.xlsx")
+avg_reval_ret <- as.numeric(row65$avg_revalued_earnings_at_retirement[1])
+avg_reval_report <- as.numeric(row65$avg_revalued_earnings_at_report_date[1])
+cat("Extracted Revalued Earnings at Retirement:", avg_reval_ret, "\n")
+cat("Extracted Revalued Earnings at Report Date:", avg_reval_report, "\n")
+
+# ---------------------------
+# Simulate Scenario Inputs
+# ---------------------------
+scenario_nby_slider <- 3    # 3% from slider
+scenario_transfer_value <- 100000
+
+effective_nby <- scenario_nby_slider / 100
+cat("\nScenario NBY (as decimal):", effective_nby, "\n")
+cat("Scenario Transfer Value:", scenario_transfer_value, "\n")
+
+# ---------------------------
+# Compute Scheme Factor and Transfer-In Credit
+# ---------------------------
+cat("\n=== Final Calculations ===\n")
+scheme_factor <- ((1 + preret_rate) ^ (-ttr)) * total_pcf * effective_nby
+transfer_in_credit <- scenario_transfer_value / (scheme_factor * avg_reval_ret)
+cat("Calculated Scheme Factor:", scheme_factor, "\n")
+cat("Calculated Transfer-In Credit:", transfer_in_credit, "\n")

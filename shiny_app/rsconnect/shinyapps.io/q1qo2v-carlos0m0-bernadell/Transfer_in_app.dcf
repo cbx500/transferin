@@ -1,0 +1,13 @@
+name: Transfer_in_app
+title: Transfer_in_app
+username: q1qo2v-carlos0m0-bernadell
+account: q1qo2v-carlos0m0-bernadell
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 13934576
+bundleId: 9764636
+url: https://q1qo2v-carlos0m0-bernadell.shinyapps.io/Transfer_in_app/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: oldserver.R|oldui.R
