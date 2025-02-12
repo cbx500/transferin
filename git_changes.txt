@@ -1,2 +1,2 @@
  M git_changes.txt
-?? git_log.txt
+ M git_log.txt
